@@ -1,0 +1,182 @@
+#include <WiFi.h>
+#include <Firebase_ESP_Client.h>
+#include <time.h>
+
+// Helper files that come with Firebase ESP Client
+#include "addons/TokenHelper.h"
+#include "addons/RTDBHelper.h"
+
+// ===== Wi-Fi credentials =====
+#define WIFI_SSID "gnet2018"
+#define WIFI_PASSWORD "bacs2024"
+
+// ===== Firebase credentials =====
+#define API_KEY "AIzaSyCXYAEy-eH3Y-IIBC3AXXmaVRHpWkXIi9k"
+#define DATABASE_URL "https://systeme-pv-default-rtdb.europe-west1.firebasedatabase.app/"
+
+// ===== User Auth =====
+#define USER_EMAIL "wajih@gmail.com"
+#define USER_PASSWORD "azerty"
+
+// ===== NTP Server for time sync =====
+const char* ntpServer = "pool.ntp.org";
+const long gmtOffset_sec = 3600;        // GMT+1 (adjust for your timezone)
+const int daylightOffset_sec = 0;       // Daylight saving time offset
+
+// ===== Firebase objects =====
+FirebaseData fbdo;
+FirebaseAuth auth;
+FirebaseConfig config;
+
+// ===== Timers =====
+unsigned long lastSend = 0;
+const unsigned long sendInterval = 5000;  // send every 5 seconds
+
+bool firebaseReady = false;
+
+// Function to get current Unix timestamp (seconds since Jan 1, 1970)
+unsigned long getUnixTimestamp() {
+  time_t now;
+  struct tm timeinfo;
+  if (!getLocalTime(&timeinfo)) {
+    Serial.println("⚠️ Failed to obtain time, using millis fallback");
+    return millis() / 1000;  // Fallback to millis if NTP fails
+  }
+  time(&now);
+  return (unsigned long)now;
+}
+
+void setup() {
+  delay(2000);
+  Serial.begin(115200);
+  delay(2000);
+  Serial.println("\n=== ESP32 Wi-Fi + Firebase Send Data Test ===");
+
+  // ===== Wi-Fi connection =====
+  Serial.printf("Connecting to Wi-Fi: %s", WIFI_SSID);
+  WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+
+  unsigned long wifiStart = millis();
+  const unsigned long wifiTimeout = 15000;
+
+  while (WiFi.status() != WL_CONNECTED && millis() - wifiStart < wifiTimeout) {
+    Serial.print(".");
+    delay(500);
+  }
+
+  if (WiFi.status() == WL_CONNECTED) {
+    Serial.println("\n✅ Wi-Fi Connected!");
+    Serial.print("IP Address: ");
+    Serial.println(WiFi.localIP());
+    Serial.print("Signal Strength: ");
+    Serial.print(WiFi.RSSI());
+    Serial.println(" dBm");
+    
+    // ===== Sync time with NTP server =====
+    Serial.println("\nSyncing time with NTP server...");
+    configTime(gmtOffset_sec, daylightOffset_sec, ntpServer);
+    
+    struct tm timeinfo;
+    if (getLocalTime(&timeinfo)) {
+      Serial.println("✅ Time synchronized!");
+      Serial.print("Current time: ");
+      Serial.println(&timeinfo, "%A, %B %d %Y %H:%M:%S");
+    } else {
+      Serial.println("⚠️ Time sync failed, will use millis() as fallback");
+    }
+  } else {
+    Serial.println("\n❌ Wi-Fi Connection Failed! Check SSID or Password.");
+    while (true) delay(1000);
+  }
+
+  // ===== Firebase setup =====
+  Serial.println("\nConfiguring Firebase...");
+  config.api_key = API_KEY;
+  config.database_url = DATABASE_URL;
+  auth.user.email = USER_EMAIL;
+  auth.user.password = USER_PASSWORD;
+
+  config.token_status_callback = tokenStatusCallback;
+
+  Firebase.begin(&config, &auth);
+  Firebase.reconnectWiFi(true);
+
+  Serial.print("Connecting to Firebase");
+  unsigned long fbStart = millis();
+  const unsigned long fbTimeout = 15000;
+
+  while (!Firebase.ready() && millis() - fbStart < fbTimeout) {
+    Serial.print(".");
+    delay(500);
+  }
+
+  if (Firebase.ready()) {
+    Serial.println("\n✅ Firebase Connected!");
+    firebaseReady = true;
+  } else {
+    Serial.println("\n❌ Firebase Connection Failed!");
+  }
+
+  Serial.println("\n=== Starting data send loop ===");
+}
+
+void loop() {
+  if (!firebaseReady) {
+    Serial.println("⚠️ Firebase not ready, skipping data send...");
+    delay(2000);
+    return;
+  }
+
+  unsigned long now = millis();
+  if (now - lastSend >= sendInterval) {
+    lastSend = now;
+
+    // Get current Unix timestamp (seconds since Jan 1, 1970)
+    unsigned long timestamp = getUnixTimestamp();
+
+    // ===== Create test data =====
+    int temperature = random(20, 35);          // °C
+    int humidity = random(30, 80);             // %
+    float voltage = random(210, 240);          // V
+    float current = random(0, 100) / 10.0;     // A
+    float power = voltage * current;
+    int light = random(0, 4095);
+
+    FirebaseJson json;
+    json.set("temperature", temperature);
+    json.set("humidity", humidity);
+    json.set("voltage", voltage);
+    json.set("current", current);
+    json.set("power", power);
+    json.set("light", light);
+    json.set("timestamp", timestamp);  // Use Unix timestamp
+
+    Serial.println("\n📤 Sending data to Firebase...");
+    Serial.printf("   Timestamp: %lu | Temp: %d°C | Hum: %d%% | Volt: %.1f V | Curr: %.2f A | Power: %.1f W | Light: %d\n",
+                  timestamp, temperature, humidity, voltage, current, power, light);
+
+    // --- send current values ---
+    if (Firebase.RTDB.setJSON(&fbdo, "system/currentValue", &json)) {
+      Serial.println("✅ currentValue updated!");
+    } else {
+      Serial.println("❌ Failed to send currentValue");
+      Serial.println("   Error: " + fbdo.errorReason());
+    }
+
+    // --- add to history with Unix timestamp as key ---
+    String historyPath = "system/history/" + String(timestamp);
+    if (Firebase.RTDB.setJSON(&fbdo, historyPath.c_str(), &json)) {
+      Serial.println("✅ history entry saved!");
+      
+      // Update last connected time to match the last history entry
+      if (Firebase.RTDB.setInt(&fbdo, "system/lastConnected", timestamp)) {
+        Serial.println("✅ lastConnected time updated!");
+      }
+    } else {
+      Serial.println("❌ Failed to save history");
+      Serial.println("   Error: " + fbdo.errorReason());
+    }
+
+    Serial.println("---");
+  }
+}

@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "170182510659",
+    "firebase_url": "https://systeme-pv-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "systeme-pv",
+    "storage_bucket": "systeme-pv.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:170182510659:android:8676609fa2fe1316a4ecf6",
+        "android_client_info": {
+          "package_name": "com.example.pv_system_monitor"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyC8fTGNI7EtJLrFjtrSJO1JEGUZ29LvCSU"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
