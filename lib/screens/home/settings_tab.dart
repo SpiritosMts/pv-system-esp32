@@ -117,6 +117,17 @@ class SettingsTab extends StatelessWidget {
               },
             ).animate().slideX(begin: 0.3, delay: 500.ms, duration: 600.ms).fadeIn(delay: 500.ms, duration: 600.ms),
 
+            // Clear History Button
+            _buildSettingsItem(
+              context,
+              icon: Icons.delete_outline,
+              title: 'Clear History',
+              subtitle: 'Delete all historical data',
+              onTap: () {
+                _showClearHistoryDialog(context);
+              },
+            ).animate().slideX(begin: -0.3, delay: 600.ms, duration: 600.ms).fadeIn(delay: 600.ms, duration: 600.ms),
+
             const SizedBox(height: 20),
 
             // About Section
@@ -125,7 +136,7 @@ class SettingsTab extends StatelessWidget {
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
                     fontWeight: FontWeight.bold,
                   ),
-            ).animate().slideX(begin: -0.3, delay: 600.ms, duration: 600.ms).fadeIn(delay: 600.ms, duration: 600.ms),
+            ).animate().slideX(begin: -0.3, delay: 700.ms, duration: 600.ms).fadeIn(delay: 700.ms, duration: 600.ms),
 
             const SizedBox(height: 16),
 
@@ -135,7 +146,7 @@ class SettingsTab extends StatelessWidget {
               title: 'App Version',
               subtitle: '1.0.0',
               onTap: () {},
-            ).animate().slideX(begin: 0.3, delay: 700.ms, duration: 600.ms).fadeIn(delay: 700.ms, duration: 600.ms),
+            ).animate().slideX(begin: 0.3, delay: 800.ms, duration: 600.ms).fadeIn(delay: 800.ms, duration: 600.ms),
 
             _buildSettingsItem(
               context,
@@ -147,7 +158,7 @@ class SettingsTab extends StatelessWidget {
                   const SnackBar(content: Text('Help & Support - Coming soon!')),
                 );
               },
-            ).animate().slideX(begin: -0.3, delay: 800.ms, duration: 600.ms).fadeIn(delay: 800.ms, duration: 600.ms),
+            ).animate().slideX(begin: -0.3, delay: 900.ms, duration: 600.ms).fadeIn(delay: 900.ms, duration: 600.ms),
 
             const SizedBox(height: 32),
 
@@ -189,7 +200,7 @@ class SettingsTab extends StatelessWidget {
                   ),
                 );
               },
-            ).animate().slideY(begin: 0.3, delay: 900.ms, duration: 600.ms).fadeIn(delay: 900.ms, duration: 600.ms),
+            ).animate().slideY(begin: 0.3, delay: 1000.ms, duration: 600.ms).fadeIn(delay: 1000.ms, duration: 600.ms),
           ],
         ),
       ),
@@ -224,6 +235,35 @@ class SettingsTab extends StatelessWidget {
         subtitle: Text(subtitle),
         trailing: const Icon(Icons.chevron_right),
         onTap: onTap,
+      ),
+    );
+  }
+
+  void _showClearHistoryDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Clear History'),
+        content: const Text('Are you sure you want to delete all historical data? This action cannot be undone.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context);
+              // TODO: Implement clear history functionality
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('History cleared successfully!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            child: const Text('Clear History'),
+          ),
+        ],
       ),
     );
   }

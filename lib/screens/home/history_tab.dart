@@ -16,8 +16,8 @@ class HistoryTab extends StatefulWidget {
 class _HistoryTabState extends State<HistoryTab> {
   String _selectedMetric = 'power';
   String _selectedTimeRange = '24h';
-  int _itemsToShow = 20; // Initial items to show
-  final int _itemsPerLoad = 20; // Items to load on each scroll
+  int _currentPage = 0;
+  final int _itemsPerPage = 20;
 
   final Map<String, String> _metrics = {
     'power': 'Power (W)',
@@ -34,31 +34,6 @@ class _HistoryTabState extends State<HistoryTab> {
     '24h': Duration(hours: 24),
     '7d': Duration(days: 7),
   };
-
-  final ScrollController _scrollController = ScrollController();
-
-  @override
-  void initState() {
-    super.initState();
-    _scrollController.addListener(_scrollListener);
-  }
-
-  @override
-  void dispose() {
-    _scrollController.removeListener(_scrollListener);
-    _scrollController.dispose();
-    super.dispose();
-  }
-
-  void _scrollListener() {
-    // Check if user has scrolled to the bottom
-    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
-      // Load more items when near the bottom
-      setState(() {
-        _itemsToShow += _itemsPerLoad;
-      });
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -104,12 +79,14 @@ class _HistoryTabState extends State<HistoryTab> {
 
           final filteredData = pvProvider.getHistoryForTimeRange(_timeRanges[_selectedTimeRange]!);
 
-          // Take only the items we want to show (with infinite scroll)
-          final displayedData = filteredData.take(_itemsToShow).toList();
-          final hasMoreData = _itemsToShow < filteredData.length;
+          // Pagination logic
+          final bool needsPagination = filteredData.length > 10;
+          final int totalPages = (filteredData.length / _itemsPerPage).ceil();
+          final int startIndex = _currentPage * _itemsPerPage;
+          final int endIndex = (startIndex + _itemsPerPage) > filteredData.length ? filteredData.length : startIndex + _itemsPerPage;
+          final List<PVHistoryData> paginatedData = filteredData.sublist(startIndex, endIndex);
 
           return SingleChildScrollView(
-            controller: _scrollController,
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -129,17 +106,8 @@ class _HistoryTabState extends State<HistoryTab> {
 
                 const SizedBox(height: 20),
 
-                // Recent Data List with Infinite Scroll
-                _buildRecentDataList(displayedData).animate().slideY(begin: 0.3, delay: 400.ms, duration: 600.ms).fadeIn(delay: 400.ms, duration: 600.ms),
-
-                // Loading indicator
-                if (hasMoreData)
-                  const Padding(
-                    padding: EdgeInsets.all(16),
-                    child: Center(
-                      child: CircularProgressIndicator(),
-                    ),
-                  ),
+                // Recent Data List with Pagination
+                _buildRecentDataList(paginatedData, needsPagination, totalPages).animate().slideY(begin: 0.3, delay: 400.ms, duration: 600.ms).fadeIn(delay: 400.ms, duration: 600.ms),
               ],
             ),
           );
@@ -150,7 +118,8 @@ class _HistoryTabState extends State<HistoryTab> {
 
   Widget _buildControls() {
     return Card(
-      child: Padding(
+      child: Container(
+        width: double.infinity, // Make container fit full width
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -175,14 +144,13 @@ class _HistoryTabState extends State<HistoryTab> {
               spacing: 8,
               children: _metrics.entries.map((entry) {
                 final isSelected = _selectedMetric == entry.key;
-                return FilterChip(
+                return ChoiceChip(
                   label: Text(entry.value),
                   selected: isSelected,
                   onSelected: (selected) {
                     if (selected) {
                       setState(() {
                         _selectedMetric = entry.key;
-                        _itemsToShow = 20; // Reset items to show when changing metric
                       });
                     }
                   },
@@ -204,14 +172,14 @@ class _HistoryTabState extends State<HistoryTab> {
               spacing: 8,
               children: _timeRanges.keys.map((range) {
                 final isSelected = _selectedTimeRange == range;
-                return FilterChip(
+                return ChoiceChip(
                   label: Text(range),
                   selected: isSelected,
                   onSelected: (selected) {
                     if (selected) {
                       setState(() {
                         _selectedTimeRange = range;
-                        _itemsToShow = 20; // Reset items to show when changing time range
+                        _currentPage = 0; // Reset to first page when changing time range
                       });
                     }
                   },
@@ -523,7 +491,7 @@ class _HistoryTabState extends State<HistoryTab> {
     );
   }
 
-  Widget _buildRecentDataList(List<PVHistoryData> data) {
+  Widget _buildRecentDataList(List<PVHistoryData> data, bool needsPagination, int totalPages) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -538,6 +506,7 @@ class _HistoryTabState extends State<HistoryTab> {
             ),
             const SizedBox(height: 16),
             ...data.map((item) => _buildDataItem(item)).toList(),
+            if (needsPagination) _buildPaginationControls(totalPages),
           ],
         ),
       ),
@@ -674,7 +643,7 @@ class _HistoryTabState extends State<HistoryTab> {
                       ),
                       _buildDetailCard(
                         context,
-                        'Temperature',
+                        'Temp',
                         '${data.temperature.toStringAsFixed(1)} °C',
                         Icons.thermostat,
                         Colors.red,
@@ -776,6 +745,59 @@ class _HistoryTabState extends State<HistoryTab> {
                 ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPaginationControls(int totalPages) {
+    // Simplified pagination that strictly limits displayed page numbers
+    return Center(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        child: Row(
+          mainAxisSize: MainAxisSize.min, // Use minimum space
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            // Previous button
+            IconButton(
+              icon: const Icon(Icons.arrow_back_ios, size: 16),
+              onPressed: _currentPage > 0
+                  ? () {
+                      setState(() {
+                        _currentPage--;
+                      });
+                    }
+                  : null,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+
+            // Page info - show current page and total in compact format
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              child: Text(
+                '${_currentPage + 1} / $totalPages',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                    ),
+              ),
+            ),
+
+            // Next button
+            IconButton(
+              icon: const Icon(Icons.arrow_forward_ios, size: 16),
+              onPressed: _currentPage < totalPages - 1
+                  ? () {
+                      setState(() {
+                        _currentPage++;
+                      });
+                    }
+                  : null,
+              padding: EdgeInsets.zero,
+              constraints: const BoxConstraints(),
+            ),
+          ],
+        ),
       ),
     );
   }
