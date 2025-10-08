@@ -70,33 +70,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 32),
-                
+
+                // Logo
+                Center(
+                  child: Image.asset(
+                    'assets/icons/pvlogo.png',
+                    width: 90, // Made smaller
+                    height: 90, // Made smaller
+                    fit: BoxFit.contain,
+                  ).animate().scale(delay: 100.ms, duration: 600.ms).fadeIn(delay: 100.ms, duration: 600.ms),
+                ),
+
+                const SizedBox(height: 24),
+
                 Text(
                   'Join PV Monitor',
                   style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
+                        fontWeight: FontWeight.bold,
+                      ),
                   textAlign: TextAlign.center,
-                )
-                    .animate()
-                    .slideY(begin: 0.3, delay: 100.ms, duration: 600.ms)
-                    .fadeIn(delay: 100.ms, duration: 600.ms),
-                
+                ).animate().slideY(begin: 0.3, delay: 200.ms, duration: 600.ms).fadeIn(delay: 200.ms, duration: 600.ms),
+
                 const SizedBox(height: 8),
-                
+
                 Text(
                   'Create an account to start monitoring',
                   style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: Colors.grey[600],
-                  ),
+                        color: Colors.grey[600],
+                      ),
                   textAlign: TextAlign.center,
-                )
-                    .animate()
-                    .slideY(begin: 0.3, delay: 200.ms, duration: 600.ms)
-                    .fadeIn(delay: 200.ms, duration: 600.ms),
-                
+                ).animate().slideY(begin: 0.3, delay: 300.ms, duration: 600.ms).fadeIn(delay: 300.ms, duration: 600.ms),
+
                 const SizedBox(height: 48),
-                
+
                 // Email Field
                 CustomTextField(
                   controller: _emailController,
@@ -112,13 +118,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     }
                     return null;
                   },
-                )
-                    .animate()
-                    .slideX(begin: -0.3, delay: 300.ms, duration: 600.ms)
-                    .fadeIn(delay: 300.ms, duration: 600.ms),
-                
+                ).animate().slideX(begin: -0.3, delay: 400.ms, duration: 600.ms).fadeIn(delay: 400.ms, duration: 600.ms),
+
                 const SizedBox(height: 16),
-                
+
                 // Password Field
                 CustomTextField(
                   controller: _passwordController,
@@ -144,13 +147,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     }
                     return null;
                   },
-                )
-                    .animate()
-                    .slideX(begin: 0.3, delay: 400.ms, duration: 600.ms)
-                    .fadeIn(delay: 400.ms, duration: 600.ms),
-                
+                ).animate().slideX(begin: 0.3, delay: 500.ms, duration: 600.ms).fadeIn(delay: 500.ms, duration: 600.ms),
+
                 const SizedBox(height: 16),
-                
+
                 // Confirm Password Field
                 CustomTextField(
                   controller: _confirmPasswordController,
@@ -176,13 +176,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     }
                     return null;
                   },
-                )
-                    .animate()
-                    .slideX(begin: -0.3, delay: 500.ms, duration: 600.ms)
-                    .fadeIn(delay: 500.ms, duration: 600.ms),
-                
+                ).animate().slideX(begin: -0.3, delay: 600.ms, duration: 600.ms).fadeIn(delay: 600.ms, duration: 600.ms),
+
                 const SizedBox(height: 32),
-                
+
                 // Register Button
                 Consumer<AuthProvider>(
                   builder: (context, authProvider, child) {
@@ -192,13 +189,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       isLoading: authProvider.isLoading,
                     );
                   },
-                )
-                    .animate()
-                    .slideY(begin: 0.3, delay: 600.ms, duration: 600.ms)
-                    .fadeIn(delay: 600.ms, duration: 600.ms),
-                
+                ).animate().slideY(begin: 0.3, delay: 700.ms, duration: 600.ms).fadeIn(delay: 700.ms, duration: 600.ms),
+
                 const SizedBox(height: 24),
-                
+
                 // Login Link
                 Row(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -214,9 +208,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       child: const Text('Sign In'),
                     ),
                   ],
-                )
-                    .animate()
-                    .fadeIn(delay: 700.ms, duration: 600.ms),
+                ).animate().fadeIn(delay: 800.ms, duration: 600.ms),
               ],
             ),
           ),

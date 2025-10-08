@@ -16,6 +16,8 @@ class HistoryTab extends StatefulWidget {
 class _HistoryTabState extends State<HistoryTab> {
   String _selectedMetric = 'power';
   String _selectedTimeRange = '24h';
+  int _itemsToShow = 20; // Initial items to show
+  final int _itemsPerLoad = 20; // Items to load on each scroll
 
   final Map<String, String> _metrics = {
     'power': 'Power (W)',
@@ -32,6 +34,31 @@ class _HistoryTabState extends State<HistoryTab> {
     '24h': Duration(hours: 24),
     '7d': Duration(days: 7),
   };
+
+  final ScrollController _scrollController = ScrollController();
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_scrollListener);
+  }
+
+  @override
+  void dispose() {
+    _scrollController.removeListener(_scrollListener);
+    _scrollController.dispose();
+    super.dispose();
+  }
+
+  void _scrollListener() {
+    // Check if user has scrolled to the bottom
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200) {
+      // Load more items when near the bottom
+      setState(() {
+        _itemsToShow += _itemsPerLoad;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -66,8 +93,8 @@ class _HistoryTabState extends State<HistoryTab> {
                   Text(
                     'Data will appear here once your system starts reporting',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.grey[600],
-                    ),
+                          color: Colors.grey[600],
+                        ),
                     textAlign: TextAlign.center,
                   ),
                 ],
@@ -77,40 +104,42 @@ class _HistoryTabState extends State<HistoryTab> {
 
           final filteredData = pvProvider.getHistoryForTimeRange(_timeRanges[_selectedTimeRange]!);
 
+          // Take only the items we want to show (with infinite scroll)
+          final displayedData = filteredData.take(_itemsToShow).toList();
+          final hasMoreData = _itemsToShow < filteredData.length;
+
           return SingleChildScrollView(
+            controller: _scrollController,
             padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 // Controls
-                _buildControls()
-                    .animate()
-                    .slideY(begin: -0.3, delay: 100.ms, duration: 600.ms)
-                    .fadeIn(delay: 100.ms, duration: 600.ms),
+                _buildControls().animate().slideY(begin: -0.3, delay: 100.ms, duration: 600.ms).fadeIn(delay: 100.ms, duration: 600.ms),
 
                 const SizedBox(height: 20),
 
                 // Chart
-                _buildChart(filteredData)
-                    .animate()
-                    .slideY(begin: 0.3, delay: 200.ms, duration: 600.ms)
-                    .fadeIn(delay: 200.ms, duration: 600.ms),
+                _buildChart(filteredData).animate().slideY(begin: 0.3, delay: 200.ms, duration: 600.ms).fadeIn(delay: 200.ms, duration: 600.ms),
 
                 const SizedBox(height: 20),
 
                 // Statistics
-                _buildStatistics(filteredData)
-                    .animate()
-                    .slideY(begin: 0.3, delay: 300.ms, duration: 600.ms)
-                    .fadeIn(delay: 300.ms, duration: 600.ms),
+                _buildStatistics(filteredData).animate().slideY(begin: 0.3, delay: 300.ms, duration: 600.ms).fadeIn(delay: 300.ms, duration: 600.ms),
 
                 const SizedBox(height: 20),
 
-                // Recent Data List
-                _buildRecentDataList(filteredData.take(10).toList())
-                    .animate()
-                    .slideY(begin: 0.3, delay: 400.ms, duration: 600.ms)
-                    .fadeIn(delay: 400.ms, duration: 600.ms),
+                // Recent Data List with Infinite Scroll
+                _buildRecentDataList(displayedData).animate().slideY(begin: 0.3, delay: 400.ms, duration: 600.ms).fadeIn(delay: 400.ms, duration: 600.ms),
+
+                // Loading indicator
+                if (hasMoreData)
+                  const Padding(
+                    padding: EdgeInsets.all(16),
+                    child: Center(
+                      child: CircularProgressIndicator(),
+                    ),
+                  ),
               ],
             ),
           );
@@ -129,17 +158,17 @@ class _HistoryTabState extends State<HistoryTab> {
             Text(
               'Chart Settings',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: 16),
-            
+
             // Metric Selection
             Text(
               'Metric',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w500,
-              ),
+                    fontWeight: FontWeight.w500,
+                  ),
             ),
             const SizedBox(height: 8),
             Wrap(
@@ -153,21 +182,22 @@ class _HistoryTabState extends State<HistoryTab> {
                     if (selected) {
                       setState(() {
                         _selectedMetric = entry.key;
+                        _itemsToShow = 20; // Reset items to show when changing metric
                       });
                     }
                   },
                 );
               }).toList(),
             ),
-            
+
             const SizedBox(height: 16),
-            
+
             // Time Range Selection
             Text(
               'Time Range',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                fontWeight: FontWeight.w500,
-              ),
+                    fontWeight: FontWeight.w500,
+                  ),
             ),
             const SizedBox(height: 8),
             Wrap(
@@ -181,6 +211,7 @@ class _HistoryTabState extends State<HistoryTab> {
                     if (selected) {
                       setState(() {
                         _selectedTimeRange = range;
+                        _itemsToShow = 20; // Reset items to show when changing time range
                       });
                     }
                   },
@@ -210,7 +241,7 @@ class _HistoryTabState extends State<HistoryTab> {
       final index = entry.key;
       final item = entry.value;
       double value;
-      
+
       switch (_selectedMetric) {
         case 'power':
           value = item.power;
@@ -233,9 +264,29 @@ class _HistoryTabState extends State<HistoryTab> {
         default:
           value = 0;
       }
-      
+
       return FlSpot(index.toDouble(), value);
     }).toList();
+
+    // Calculate appropriate intervals for grid lines based on data range
+    double horizontalInterval = 1;
+    if (spots.isNotEmpty) {
+      final maxY = spots.map((e) => e.y).reduce((a, b) => a > b ? a : b);
+      final minY = spots.map((e) => e.y).reduce((a, b) => a < b ? a : b);
+      final range = maxY - minY;
+
+      // Reduce grid lines for large value ranges (power and light)
+      if (range > 3000) {
+        horizontalInterval = range / 5; // Show ~5 horizontal lines
+      } else if (range > 1000) {
+        horizontalInterval = range / 4; // Show ~4 horizontal lines
+      } else {
+        horizontalInterval = range / 3; // Show ~3 horizontal lines
+      }
+
+      // Ensure minimum interval of 1
+      horizontalInterval = horizontalInterval < 1 ? 1 : horizontalInterval;
+    }
 
     return Card(
       child: Padding(
@@ -246,8 +297,8 @@ class _HistoryTabState extends State<HistoryTab> {
             Text(
               _metrics[_selectedMetric]!,
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: 16),
             SizedBox(
@@ -257,17 +308,17 @@ class _HistoryTabState extends State<HistoryTab> {
                   gridData: FlGridData(
                     show: true,
                     drawVerticalLine: true,
-                    horizontalInterval: 1,
+                    horizontalInterval: horizontalInterval, // Dynamic interval based on data range
                     verticalInterval: 1,
                     getDrawingHorizontalLine: (value) {
                       return FlLine(
-                        color: Colors.grey.withOpacity(0.2),
+                        color: Colors.grey.withOpacity(0.1),
                         strokeWidth: 1,
                       );
                     },
                     getDrawingVerticalLine: (value) {
                       return FlLine(
-                        color: Colors.grey.withOpacity(0.2),
+                        color: Colors.grey.withOpacity(0.1),
                         strokeWidth: 1,
                       );
                     },
@@ -292,9 +343,10 @@ class _HistoryTabState extends State<HistoryTab> {
                               axisSide: meta.axisSide,
                               child: Text(
                                 DateFormat('HH:mm').format(item.dateTime),
-                                style: const TextStyle(
-                                  color: Colors.grey,
+                                style: TextStyle(
+                                  color: Colors.white.withOpacity(0.7), // White with 0.7 opacity
                                   fontSize: 10,
+                                  fontWeight: FontWeight.w500,
                                 ),
                               ),
                             );
@@ -311,9 +363,10 @@ class _HistoryTabState extends State<HistoryTab> {
                         getTitlesWidget: (value, meta) {
                           return Text(
                             value.toStringAsFixed(1),
-                            style: const TextStyle(
-                              color: Colors.grey,
+                            style: TextStyle(
+                              color: Colors.white.withOpacity(0.7), // White with 0.7 opacity
                               fontSize: 10,
+                              fontWeight: FontWeight.w500,
                             ),
                           );
                         },
@@ -322,7 +375,7 @@ class _HistoryTabState extends State<HistoryTab> {
                   ),
                   borderData: FlBorderData(
                     show: true,
-                    border: Border.all(color: Colors.grey.withOpacity(0.2)),
+                    border: Border.all(color: Colors.grey.withOpacity(0.1)),
                   ),
                   minX: 0,
                   maxX: spots.isNotEmpty ? spots.last.x : 0,
@@ -354,6 +407,30 @@ class _HistoryTabState extends State<HistoryTab> {
                       ),
                     ),
                   ],
+                  lineTouchData: LineTouchData(
+                    touchTooltipData: LineTouchTooltipData(
+                      tooltipBgColor: Colors.black87,
+                      tooltipRoundedRadius: 8,
+                      tooltipPadding: const EdgeInsets.all(8),
+                      tooltipMargin: 10,
+                      getTooltipItems: (touchedSpots) {
+                        return touchedSpots.map((touchedSpot) {
+                          final value = touchedSpot.y;
+                          return LineTooltipItem(
+                            value.toStringAsFixed(2),
+                            const TextStyle(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 12,
+                            ),
+                          );
+                        }).toList();
+                      },
+                    ),
+                    touchCallback: (FlTouchEvent event, LineTouchResponse? response) {
+                      // Handle touch events if needed
+                    },
+                  ),
                 ),
               ),
             ),
@@ -399,8 +476,8 @@ class _HistoryTabState extends State<HistoryTab> {
             Text(
               'Statistics',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: 16),
             Row(
@@ -439,8 +516,8 @@ class _HistoryTabState extends State<HistoryTab> {
         Text(
           label,
           style: Theme.of(context).textTheme.bodySmall?.copyWith(
-            color: Colors.grey[600],
-          ),
+                color: Colors.grey[600],
+              ),
         ),
       ],
     );
@@ -456,8 +533,8 @@ class _HistoryTabState extends State<HistoryTab> {
             Text(
               'Recent Readings',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             const SizedBox(height: 16),
             ...data.map((item) => _buildDataItem(item)).toList(),
@@ -468,41 +545,235 @@ class _HistoryTabState extends State<HistoryTab> {
   }
 
   Widget _buildDataItem(PVHistoryData data) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: Row(
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(
-              color: Theme.of(context).primaryColor,
-              shape: BoxShape.circle,
-            ),
+    return GestureDetector(
+      onTap: () {
+        // Show detailed values when tapped
+        _showDetailedDataDialog(context, data);
+      },
+      child: Container(
+        color: Colors.transparent, // Make the entire container tappable
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 8),
+          child: Row(
+            children: [
+              Container(
+                width: 8,
+                height: 8,
+                decoration: BoxDecoration(
+                  color: Theme.of(context).primaryColor,
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      DateFormat('MMM dd, yyyy HH:mm:ss').format(data.dateTime),
+                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                            fontWeight: FontWeight.w500,
+                          ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'P: ${data.power.toStringAsFixed(1)}W • '
+                      'I: ${data.current.toStringAsFixed(1)}A • '
+                      'V: ${data.voltage.toStringAsFixed(1)}V • '
+                      'T: ${data.temperature.toStringAsFixed(1)}°C',
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: Colors.grey[600],
+                          ),
+                    ),
+                  ],
+                ),
+              ),
+              // Removed the arrow icon
+            ],
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  DateFormat('MMM dd, yyyy HH:mm:ss').format(data.dateTime),
-                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    fontWeight: FontWeight.w500,
+        ),
+      ),
+    );
+  }
+
+  void _showDetailedDataDialog(BuildContext context, PVHistoryData data) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Header
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Reading Details',
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                          fontWeight: FontWeight.bold,
+                        ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'P: ${data.power.toStringAsFixed(1)}W • '
-                  'I: ${data.current.toStringAsFixed(1)}A • '
-                  'V: ${data.voltage.toStringAsFixed(1)}V • '
-                  'T: ${data.temperature.toStringAsFixed(1)}°C',
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: Colors.grey[600],
+                  IconButton(
+                    icon: const Icon(Icons.close),
+                    onPressed: () => Navigator.of(context).pop(),
                   ),
+                ],
+              ),
+              const SizedBox(height: 16),
+
+              // Date and time
+              Text(
+                DateFormat('MMM dd, yyyy HH:mm:ss').format(data.dateTime),
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w600,
+                      color: Theme.of(context).primaryColor,
+                    ),
+              ),
+              const SizedBox(height: 20),
+
+              // Detailed metrics in a grid
+              LayoutBuilder(
+                builder: (context, constraints) {
+                  // Calculate item width with proper spacing to prevent overflow
+                  final spacing = 12.0;
+                  final itemWidth = (constraints.maxWidth - spacing) / 2 - spacing;
+                  return Wrap(
+                    spacing: spacing,
+                    runSpacing: spacing,
+                    children: [
+                      _buildDetailCard(
+                        context,
+                        'Power',
+                        '${data.power.toStringAsFixed(1)} W',
+                        Icons.flash_on,
+                        Colors.green,
+                        itemWidth,
+                      ),
+                      _buildDetailCard(
+                        context,
+                        'Current',
+                        '${data.current.toStringAsFixed(1)} A',
+                        Icons.electrical_services,
+                        Colors.blue,
+                        itemWidth,
+                      ),
+                      _buildDetailCard(
+                        context,
+                        'Voltage',
+                        '${data.voltage.toStringAsFixed(1)} V',
+                        Icons.bolt,
+                        Colors.orange,
+                        itemWidth,
+                      ),
+                      _buildDetailCard(
+                        context,
+                        'Temperature',
+                        '${data.temperature.toStringAsFixed(1)} °C',
+                        Icons.thermostat,
+                        Colors.red,
+                        itemWidth,
+                      ),
+                      _buildDetailCard(
+                        context,
+                        'Humidity',
+                        '${data.humidity.toStringAsFixed(1)} %',
+                        Icons.water,
+                        Colors.lightBlue,
+                        itemWidth,
+                      ),
+                      _buildDetailCard(
+                        context,
+                        'Light',
+                        '${data.light.toStringAsFixed(0)} lux',
+                        Icons.wb_sunny,
+                        Colors.amber,
+                        itemWidth,
+                      ),
+                    ],
+                  );
+                },
+              ),
+
+              const SizedBox(height: 20),
+
+              // Close button
+              Center(
+                child: ElevatedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('Close'),
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 10), // Add some bottom padding
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDetailCard(
+    BuildContext context,
+    String label,
+    String value,
+    IconData icon,
+    Color color,
+    double width,
+  ) {
+    return Container(
+      width: width,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardTheme.color,
+        borderRadius: BorderRadius.circular(12),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(
+                  icon,
+                  color: color,
+                  size: 20,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w500,
+                      color: Colors.grey[700],
+                    ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            value,
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
           ),
         ],
       ),

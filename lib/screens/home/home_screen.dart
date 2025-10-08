@@ -16,22 +16,24 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   int _currentIndex = 0;
   late TabController _tabController;
+  late PVDataProvider _pvDataProvider; // Store reference to avoid context access in dispose
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
-    
+
     // Start listening to PV data
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      Provider.of<PVDataProvider>(context, listen: false).startListening();
+      _pvDataProvider = Provider.of<PVDataProvider>(context, listen: false);
+      _pvDataProvider.startListening();
     });
   }
 
   @override
   void dispose() {
     _tabController.dispose();
-    Provider.of<PVDataProvider>(context, listen: false).stopListening();
+    _pvDataProvider.stopListening(); // Use stored reference instead of accessing context
     super.dispose();
   }
 
@@ -82,10 +84,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             ),
           ],
         ),
-      )
-          .animate()
-          .slideY(begin: 1, delay: 300.ms, duration: 600.ms)
-          .fadeIn(delay: 300.ms, duration: 600.ms),
+      ).animate().slideY(begin: 1, delay: 300.ms, duration: 600.ms).fadeIn(delay: 300.ms, duration: 600.ms),
     );
   }
 }

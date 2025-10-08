@@ -25,31 +25,41 @@ class SettingsTab extends StatelessWidget {
                   builder: (context, authProvider, child) {
                     final user = authProvider.user;
                     return Column(
+                      crossAxisAlignment: CrossAxisAlignment.start, // Align items to start
                       children: [
-                        CircleAvatar(
-                          radius: 40,
-                          backgroundColor: Theme.of(context).primaryColor,
-                          child: Text(
-                            user?.email?.substring(0, 1).toUpperCase() ?? 'U',
-                            style: const TextStyle(
-                              fontSize: 24,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
+                        Center(
+                          // Center the avatar
+                          child: CircleAvatar(
+                            radius: 40,
+                            backgroundColor: Theme.of(context).primaryColor,
+                            child: Text(
+                              user?.email?.substring(0, 1).toUpperCase() ?? 'U',
+                              style: const TextStyle(
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
                             ),
                           ),
                         ),
                         const SizedBox(height: 16),
-                        Text(
-                          user?.email ?? 'No email',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.w600,
+                        Center(
+                          // Center the email text
+                          child: Text(
+                            user?.email ?? 'No email',
+                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
                           ),
                         ),
                         const SizedBox(height: 8),
-                        Text(
-                          'PV System Monitor User',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Colors.grey[600],
+                        Center(
+                          // Center the user type text
+                          child: Text(
+                            'PV System Monitor User',
+                            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                  color: Colors.grey[600],
+                                ),
                           ),
                         ),
                       ],
@@ -57,10 +67,7 @@ class SettingsTab extends StatelessWidget {
                   },
                 ),
               ),
-            )
-                .animate()
-                .slideY(begin: 0.3, delay: 100.ms, duration: 600.ms)
-                .fadeIn(delay: 100.ms, duration: 600.ms),
+            ).animate().slideY(begin: 0.3, delay: 100.ms, duration: 600.ms).fadeIn(delay: 100.ms, duration: 600.ms),
 
             const SizedBox(height: 20),
 
@@ -68,12 +75,9 @@ class SettingsTab extends StatelessWidget {
             Text(
               'Preferences',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            )
-                .animate()
-                .slideX(begin: -0.3, delay: 200.ms, duration: 600.ms)
-                .fadeIn(delay: 200.ms, duration: 600.ms),
+                    fontWeight: FontWeight.bold,
+                  ),
+            ).animate().slideX(begin: -0.3, delay: 200.ms, duration: 600.ms).fadeIn(delay: 200.ms, duration: 600.ms),
 
             const SizedBox(height: 16),
 
@@ -87,10 +91,7 @@ class SettingsTab extends StatelessWidget {
                   const SnackBar(content: Text('Notifications settings - Coming soon!')),
                 );
               },
-            )
-                .animate()
-                .slideX(begin: 0.3, delay: 300.ms, duration: 600.ms)
-                .fadeIn(delay: 300.ms, duration: 600.ms),
+            ).animate().slideX(begin: 0.3, delay: 300.ms, duration: 600.ms).fadeIn(delay: 300.ms, duration: 600.ms),
 
             _buildSettingsItem(
               context,
@@ -102,10 +103,7 @@ class SettingsTab extends StatelessWidget {
                   const SnackBar(content: Text('Theme settings - Coming soon!')),
                 );
               },
-            )
-                .animate()
-                .slideX(begin: -0.3, delay: 400.ms, duration: 600.ms)
-                .fadeIn(delay: 400.ms, duration: 600.ms),
+            ).animate().slideX(begin: -0.3, delay: 400.ms, duration: 600.ms).fadeIn(delay: 400.ms, duration: 600.ms),
 
             _buildSettingsItem(
               context,
@@ -117,10 +115,7 @@ class SettingsTab extends StatelessWidget {
                   const SnackBar(content: Text('Language settings - Coming soon!')),
                 );
               },
-            )
-                .animate()
-                .slideX(begin: 0.3, delay: 500.ms, duration: 600.ms)
-                .fadeIn(delay: 500.ms, duration: 600.ms),
+            ).animate().slideX(begin: 0.3, delay: 500.ms, duration: 600.ms).fadeIn(delay: 500.ms, duration: 600.ms),
 
             const SizedBox(height: 20),
 
@@ -128,12 +123,9 @@ class SettingsTab extends StatelessWidget {
             Text(
               'About',
               style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            )
-                .animate()
-                .slideX(begin: -0.3, delay: 600.ms, duration: 600.ms)
-                .fadeIn(delay: 600.ms, duration: 600.ms),
+                    fontWeight: FontWeight.bold,
+                  ),
+            ).animate().slideX(begin: -0.3, delay: 600.ms, duration: 600.ms).fadeIn(delay: 600.ms, duration: 600.ms),
 
             const SizedBox(height: 16),
 
@@ -143,10 +135,7 @@ class SettingsTab extends StatelessWidget {
               title: 'App Version',
               subtitle: '1.0.0',
               onTap: () {},
-            )
-                .animate()
-                .slideX(begin: 0.3, delay: 700.ms, duration: 600.ms)
-                .fadeIn(delay: 700.ms, duration: 600.ms),
+            ).animate().slideX(begin: 0.3, delay: 700.ms, duration: 600.ms).fadeIn(delay: 700.ms, duration: 600.ms),
 
             _buildSettingsItem(
               context,
@@ -158,10 +147,7 @@ class SettingsTab extends StatelessWidget {
                   const SnackBar(content: Text('Help & Support - Coming soon!')),
                 );
               },
-            )
-                .animate()
-                .slideX(begin: -0.3, delay: 800.ms, duration: 600.ms)
-                .fadeIn(delay: 800.ms, duration: 600.ms),
+            ).animate().slideX(begin: -0.3, delay: 800.ms, duration: 600.ms).fadeIn(delay: 800.ms, duration: 600.ms),
 
             const SizedBox(height: 32),
 
@@ -203,10 +189,7 @@ class SettingsTab extends StatelessWidget {
                   ),
                 );
               },
-            )
-                .animate()
-                .slideY(begin: 0.3, delay: 900.ms, duration: 600.ms)
-                .fadeIn(delay: 900.ms, duration: 600.ms),
+            ).animate().slideY(begin: 0.3, delay: 900.ms, duration: 600.ms).fadeIn(delay: 900.ms, duration: 600.ms),
           ],
         ),
       ),
