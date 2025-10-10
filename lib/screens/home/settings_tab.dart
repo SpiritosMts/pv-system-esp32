@@ -2,9 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/pv_data_provider.dart';
 
-class SettingsTab extends StatelessWidget {
+class SettingsTab extends StatefulWidget {
   const SettingsTab({super.key});
+
+  @override
+  State<SettingsTab> createState() => _SettingsTabState();
+}
+
+class _SettingsTabState extends State<SettingsTab> {
+  bool _isProcessing = false;
 
   @override
   Widget build(BuildContext context) {
@@ -128,7 +136,18 @@ class SettingsTab extends StatelessWidget {
               },
             ).animate().slideX(begin: -0.3, delay: 600.ms, duration: 600.ms).fadeIn(delay: 600.ms, duration: 600.ms),
 
-            const SizedBox(height: 20),
+            // // Test Button
+            // _buildSettingsItem(
+            //   context,
+            //   icon: Icons.science,
+            //   title: 'Test History Modification',
+            //   subtitle: 'Delete first half & adjust time intervals',
+            //   onTap: _isProcessing ? () {} : () {
+            //     _showTestModificationDialog(context);
+            //   },
+            // ).animate().slideX(begin: 0.3, delay: 650.ms, duration: 600.ms).fadeIn(delay: 650.ms, duration: 600.ms),
+
+            // const SizedBox(height: 20),
 
             // About Section
             Text(
@@ -262,6 +281,64 @@ class SettingsTab extends StatelessWidget {
               );
             },
             child: const Text('Clear History'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showTestModificationDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Test History Modification'),
+        content: const Text('This will:\n'
+            '• Delete the first half of history data\n'
+            '• Adjust remaining data to 1-hour intervals\n'
+            '• Set the last record as the most recent\n\n'
+            'This action cannot be undone. Continue?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              setState(() {
+                _isProcessing = true;
+              });
+
+              try {
+                final pvProvider = Provider.of<PVDataProvider>(context, listen: false);
+                await pvProvider.testModifyHistoryData();
+
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('History data modified successfully!'),
+                      backgroundColor: Colors.green,
+                    ),
+                  );
+                }
+              } catch (e) {
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Error: $e'),
+                      backgroundColor: Colors.red,
+                    ),
+                  );
+                }
+              } finally {
+                if (mounted) {
+                  setState(() {
+                    _isProcessing = false;
+                  });
+                }
+              }
+            },
+            child: const Text('Proceed'),
           ),
         ],
       ),

@@ -4,7 +4,7 @@ import '../models/pv_data.dart';
 
 class PVDataProvider extends ChangeNotifier {
   final DatabaseReference _database = FirebaseDatabase.instance.ref();
-  
+
   PVSystemData? _systemData;
   bool _isLoading = true;
   String? _errorMessage;
@@ -12,7 +12,7 @@ class PVDataProvider extends ChangeNotifier {
   PVSystemData? get systemData => _systemData;
   bool get isLoading => _isLoading;
   String? get errorMessage => _errorMessage;
-  
+
   PVCurrentData? get currentData => _systemData?.currentValue;
   List<PVHistoryData> get historyData => _systemData?.history ?? [];
 
@@ -33,7 +33,7 @@ class PVDataProvider extends ChangeNotifier {
           if (event.snapshot.exists) {
             final rawData = event.snapshot.value;
             Map<String, dynamic> data;
-            
+
             // Handle Firebase's dynamic typing
             if (rawData is Map<Object?, Object?>) {
               data = Map<String, dynamic>.from(rawData);
@@ -42,10 +42,10 @@ class PVDataProvider extends ChangeNotifier {
             } else {
               throw Exception('Unexpected data type: ${rawData.runtimeType}');
             }
-            
+
             _systemData = PVSystemData.fromJson(data);
             _errorMessage = null;
-            
+
             // Debug: Print parsed data
             print('Parsed system data: ${_systemData?.history.length} history items');
             if (_systemData?.history.isNotEmpty == true) {
@@ -70,28 +70,33 @@ class PVDataProvider extends ChangeNotifier {
     );
   }
 
-  // Get history data for a specific time range
+  // Get exactly 100 most recent history items
+  List<PVHistoryData> getHistory100() {
+    if (_systemData == null) return [];
+    return _systemData!.history.take(100).toList();
+  }
+
+  // Get history data for a specific time range (keep for charts)
   List<PVHistoryData> getHistoryForTimeRange(Duration timeRange) {
     if (_systemData == null) return [];
-    
+
     // Return recent entries based on time range
     final cutoffTime = DateTime.now().subtract(timeRange);
-    final filteredData = _systemData!.history
-        .where((data) => data.dateTime.isAfter(cutoffTime))
-        .toList();
-    
-    // If no data in range, return the most recent entries
+    final filteredData = _systemData!.history.where((data) => data.dateTime.isAfter(cutoffTime)).toList();
+
+    // If no data in range, return up to 100 most recent items
     if (filteredData.isEmpty && _systemData!.history.isNotEmpty) {
-      return _systemData!.history.take(20).toList();
+      return _systemData!.history.take(100).toList();
     }
-    
-    return filteredData;
+
+    // Limit to 100 items maximum
+    return filteredData.take(100).toList();
   }
 
   // Get latest N history entries
   List<PVHistoryData> getLatestHistory(int count) {
     if (_systemData == null) return [];
-    
+
     return _systemData!.history.take(count).toList();
   }
 
@@ -146,5 +151,85 @@ class PVDataProvider extends ChangeNotifier {
   void clearError() {
     _errorMessage = null;
     notifyListeners();
+  }
+
+  // Test function to modify history data
+  Future<void> testModifyHistoryData() async {
+    try {
+      // Get all history data
+      final historyRef = _database.child('system/history');
+      final snapshot = await historyRef.get();
+
+      if (!snapshot.exists) {
+        throw Exception('No history data found');
+      }
+
+      final historyRaw = snapshot.value;
+      Map<String, dynamic> historyMap;
+
+      if (historyRaw is Map<Object?, Object?>) {
+        historyMap = Map<String, dynamic>.from(historyRaw);
+      } else if (historyRaw is Map<String, dynamic>) {
+        historyMap = historyRaw;
+      } else {
+        throw Exception('Unexpected data type');
+      }
+
+      // Convert to list and sort by timestamp
+      List<MapEntry<String, dynamic>> historyEntries = historyMap.entries.toList();
+      historyEntries.sort((a, b) {
+        final aData = a.value is Map<Object?, Object?> ? Map<String, dynamic>.from(a.value as Map<Object?, Object?>) : a.value as Map<String, dynamic>;
+        final bData = b.value is Map<Object?, Object?> ? Map<String, dynamic>.from(b.value as Map<Object?, Object?>) : b.value as Map<String, dynamic>;
+
+        final aTimestamp = aData['timestamp'] ?? 0;
+        final bTimestamp = bData['timestamp'] ?? 0;
+
+        return aTimestamp.compareTo(bTimestamp);
+      });
+
+      // Delete first half
+      final halfPoint = historyEntries.length ~/ 2;
+      final entriesToDelete = historyEntries.sublist(0, halfPoint);
+      final entriesToKeep = historyEntries.sublist(halfPoint);
+
+      // Delete first half from Firebase
+      for (var entry in entriesToDelete) {
+        await historyRef.child(entry.key).remove();
+      }
+
+      // Adjust time intervals to 1 hour apart
+      if (entriesToKeep.isNotEmpty) {
+        // Get the most recent timestamp (will be set to now)
+        final now = DateTime.now();
+        final mostRecentTimestamp = now.millisecondsSinceEpoch ~/ 1000;
+
+        // Update each entry with 1-hour intervals
+        for (int i = 0; i < entriesToKeep.length; i++) {
+          final entry = entriesToKeep[i];
+          final entryData = entry.value is Map<Object?, Object?> ? Map<String, dynamic>.from(entry.value as Map<Object?, Object?>) : Map<String, dynamic>.from(entry.value as Map<String, dynamic>);
+
+          // Calculate new timestamp: most recent time minus (index * 1 hour)
+          final hoursBack = entriesToKeep.length - 1 - i;
+          final newTimestamp = mostRecentTimestamp - (hoursBack * 3600); // 3600 seconds = 1 hour
+
+          // Update the timestamp
+          entryData['timestamp'] = newTimestamp;
+
+          // Create new ID based on new timestamp
+          final newId = newTimestamp.toString();
+
+          // Delete old entry and create new one with updated timestamp
+          await historyRef.child(entry.key).remove();
+          await historyRef.child(newId).set(entryData);
+        }
+      }
+
+      print('History data modified successfully!');
+      print('Deleted ${entriesToDelete.length} entries');
+      print('Updated ${entriesToKeep.length} entries with 1-hour intervals');
+    } catch (e) {
+      print('Error modifying history data: $e');
+      rethrow;
+    }
   }
 }

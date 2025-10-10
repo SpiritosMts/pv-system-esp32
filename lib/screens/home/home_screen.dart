@@ -2,8 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_animate/flutter_animate.dart';
 import '../../providers/pv_data_provider.dart';
+import '../../providers/prediction_provider.dart';
 import 'dashboard_tab.dart';
 import 'history_tab.dart';
+import 'ai_prediction_tab.dart';
 import 'settings_tab.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -17,16 +19,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   int _currentIndex = 0;
   late TabController _tabController;
   late PVDataProvider _pvDataProvider; // Store reference to avoid context access in dispose
+  late PredictionProvider _predictionProvider;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 4, vsync: this);
 
-    // Start listening to PV data
+    // Start listening to PV data and predictions
     WidgetsBinding.instance.addPostFrameCallback((_) {
       _pvDataProvider = Provider.of<PVDataProvider>(context, listen: false);
       _pvDataProvider.startListening();
+      
+      _predictionProvider = Provider.of<PredictionProvider>(context, listen: false);
+      _predictionProvider.startListening();
     });
   }
 
@@ -45,6 +51,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         children: const [
           DashboardTab(),
           HistoryTab(),
+          AIPredictionTab(),
           SettingsTab(),
         ],
       ),
@@ -77,6 +84,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             BottomNavigationBarItem(
               icon: Icon(Icons.history),
               label: 'History',
+            ),
+            BottomNavigationBarItem(
+              icon: Icon(Icons.psychology),
+              label: 'AI Predict',
             ),
             BottomNavigationBarItem(
               icon: Icon(Icons.settings),
