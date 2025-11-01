@@ -21,7 +21,7 @@ class PredictionProvider extends ChangeNotifier {
 
   void _listenToPredictions() {
     _firestore
-        .collection('hourly_pv_predictions')
+        .collection('pv_predictions_5min')
         .orderBy('time', descending: false)
         .snapshots()
         .listen(

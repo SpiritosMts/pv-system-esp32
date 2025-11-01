@@ -157,9 +157,9 @@ class DashboardTab extends StatelessWidget {
                     childAspectRatio: 1.2,
                     children: [
                       MetricCard(
-                        title: 'Current',
-                        value: currentData?.current.toStringAsFixed(1) ?? '--',
-                        unit: 'A',
+                        title: 'Energy',
+                        value: currentData?.energy.toStringAsFixed(1) ?? '--',
+                        unit: 'Wh',
                         icon: Icons.flash_on,
                         color: Colors.amber,
                       )

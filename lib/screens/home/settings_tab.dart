@@ -137,15 +137,17 @@ class _SettingsTabState extends State<SettingsTab> {
             ).animate().slideX(begin: -0.3, delay: 600.ms, duration: 600.ms).fadeIn(delay: 600.ms, duration: 600.ms),
 
             // // Test Button
-            // _buildSettingsItem(
-            //   context,
-            //   icon: Icons.science,
-            //   title: 'Test History Modification',
-            //   subtitle: 'Delete first half & adjust time intervals',
-            //   onTap: _isProcessing ? () {} : () {
-            //     _showTestModificationDialog(context);
-            //   },
-            // ).animate().slideX(begin: 0.3, delay: 650.ms, duration: 600.ms).fadeIn(delay: 650.ms, duration: 600.ms),
+            _buildSettingsItem(
+              context,
+              icon: Icons.science,
+              title: 'Test History Modification',
+              subtitle: 'Delete first half & adjust time intervals',
+              onTap: _isProcessing
+                  ? () {}
+                  : () {
+                      _showTestModificationDialog(context);
+                    },
+            ).animate().slideX(begin: 0.3, delay: 650.ms, duration: 600.ms).fadeIn(delay: 650.ms, duration: 600.ms),
 
             // const SizedBox(height: 20),
 

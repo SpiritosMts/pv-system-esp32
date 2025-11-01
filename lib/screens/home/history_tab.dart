@@ -20,7 +20,7 @@ class _HistoryTabState extends State<HistoryTab> {
 
   final Map<String, String> _metrics = {
     'power': 'Power (W)',
-    'current': 'Current (A)',
+    'energy': 'Energy (Wh)',
     'voltage': 'Voltage (V)',
     'temperature': 'Temperature (°C)',
     'humidity': 'Humidity (%)',
@@ -33,6 +33,21 @@ class _HistoryTabState extends State<HistoryTab> {
     '24h': Duration(hours: 24),
     '7d': Duration(days: 7),
   };
+
+  // Get appropriate date format based on time range
+  String _getDateFormat() {
+    switch (_selectedTimeRange) {
+      case '6h':
+      case '12h':
+        return 'HH:mm';
+      case '24h':
+        return 'HH:mm';
+      case '7d':
+        return 'MM/dd';
+      default:
+        return 'HH:mm';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -78,7 +93,7 @@ class _HistoryTabState extends State<HistoryTab> {
 
           // Get 100 history values for pagination
           final allHistoryData = pvProvider.getHistory100();
-          
+
           // Get filtered data for charts (based on time range)
           final filteredData = pvProvider.getHistoryForTimeRange(_timeRanges[_selectedTimeRange]!);
 
@@ -220,8 +235,8 @@ class _HistoryTabState extends State<HistoryTab> {
         case 'power':
           value = item.power;
           break;
-        case 'current':
-          value = item.current;
+        case 'energy':
+          value = item.energy;
           break;
         case 'voltage':
           value = item.voltage;
@@ -278,6 +293,8 @@ class _HistoryTabState extends State<HistoryTab> {
             SizedBox(
               height: 300,
               child: LineChart(
+                key: ValueKey('$_selectedMetric-$_selectedTimeRange'),
+                duration: Duration.zero, // Disable animation for immediate updates
                 LineChartData(
                   gridData: FlGridData(
                     show: true,
@@ -316,7 +333,7 @@ class _HistoryTabState extends State<HistoryTab> {
                             return SideTitleWidget(
                               axisSide: meta.axisSide,
                               child: Text(
-                                DateFormat('HH:mm').format(item.dateTime),
+                                DateFormat(_getDateFormat()).format(item.dateTime),
                                 style: TextStyle(
                                   color: Colors.white.withOpacity(0.7), // White with 0.7 opacity
                                   fontSize: 10,
@@ -427,8 +444,8 @@ class _HistoryTabState extends State<HistoryTab> {
       switch (_selectedMetric) {
         case 'power':
           return item.power;
-        case 'current':
-          return item.current;
+        case 'energy':
+          return item.energy;
         case 'voltage':
           return item.voltage;
         case 'temperature':
@@ -574,7 +591,7 @@ class _HistoryTabState extends State<HistoryTab> {
                     const SizedBox(height: 4),
                     Text(
                       'P: ${data.power.toStringAsFixed(1)}W • '
-                      'I: ${data.current.toStringAsFixed(1)}A • '
+                      'E: ${data.energy.toStringAsFixed(1)}Wh • '
                       'V: ${data.voltage.toStringAsFixed(1)}V • '
                       'T: ${data.temperature.toStringAsFixed(1)}°C',
                       style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -656,8 +673,8 @@ class _HistoryTabState extends State<HistoryTab> {
                       ),
                       _buildDetailCard(
                         context,
-                        'Current',
-                        '${data.current.toStringAsFixed(1)} A',
+                        'Energy',
+                        '${data.energy.toStringAsFixed(1)} Wh',
                         Icons.electrical_services,
                         Colors.blue,
                         itemWidth,

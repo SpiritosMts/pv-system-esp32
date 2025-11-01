@@ -27,7 +27,8 @@ class PVDataProvider extends ChangeNotifier {
   }
 
   void _listenToSystemData() {
-    _database.child('system').onValue.listen(
+    // Support both old and new database paths
+    _database.child('systeme').onValue.listen(
       (DatabaseEvent event) {
         try {
           if (event.snapshot.exists) {
@@ -105,22 +106,22 @@ class PVDataProvider extends ChangeNotifier {
     final data = getHistoryForTimeRange(timeRange);
     if (data.isEmpty) {
       return {
-        'current': 0.0,
         'humidity': 0.0,
         'light': 0.0,
         'power': 0.0,
         'temperature': 0.0,
         'voltage': 0.0,
+        'energy': 0.0,
       };
     }
 
     return {
-      'current': data.map((e) => e.current).reduce((a, b) => a + b) / data.length,
       'humidity': data.map((e) => e.humidity).reduce((a, b) => a + b) / data.length,
       'light': data.map((e) => e.light).reduce((a, b) => a + b) / data.length,
       'power': data.map((e) => e.power).reduce((a, b) => a + b) / data.length,
       'temperature': data.map((e) => e.temperature).reduce((a, b) => a + b) / data.length,
       'voltage': data.map((e) => e.voltage).reduce((a, b) => a + b) / data.length,
+      'energy': data.map((e) => e.energy).reduce((a, b) => a + b) / data.length,
     };
   }
 
@@ -129,22 +130,22 @@ class PVDataProvider extends ChangeNotifier {
     final data = getHistoryForTimeRange(timeRange);
     if (data.isEmpty) {
       return {
-        'current': 0.0,
         'humidity': 0.0,
         'light': 0.0,
         'power': 0.0,
         'temperature': 0.0,
         'voltage': 0.0,
+        'energy': 0.0,
       };
     }
 
     return {
-      'current': data.map((e) => e.current).reduce((a, b) => a > b ? a : b),
       'humidity': data.map((e) => e.humidity).reduce((a, b) => a > b ? a : b),
       'light': data.map((e) => e.light).reduce((a, b) => a > b ? a : b),
       'power': data.map((e) => e.power).reduce((a, b) => a > b ? a : b),
       'temperature': data.map((e) => e.temperature).reduce((a, b) => a > b ? a : b),
       'voltage': data.map((e) => e.voltage).reduce((a, b) => a > b ? a : b),
+      'energy': data.map((e) => e.energy).reduce((a, b) => a > b ? a : b),
     };
   }
 
@@ -156,8 +157,8 @@ class PVDataProvider extends ChangeNotifier {
   // Test function to modify history data
   Future<void> testModifyHistoryData() async {
     try {
-      // Get all history data
-      final historyRef = _database.child('system/history');
+      // Get all history data - use new path
+      final historyRef = _database.child('systeme/historique');
       final snapshot = await historyRef.get();
 
       if (!snapshot.exists) {
@@ -212,8 +213,9 @@ class PVDataProvider extends ChangeNotifier {
           final hoursBack = entriesToKeep.length - 1 - i;
           final newTimestamp = mostRecentTimestamp - (hoursBack * 3600); // 3600 seconds = 1 hour
 
-          // Update the timestamp
-          entryData['timestamp'] = newTimestamp;
+          // Update the timestamp (use new field name 'ts')
+          entryData['ts'] = newTimestamp;
+          entryData['timestamp'] = newTimestamp;  // Keep old field for compatibility
 
           // Create new ID based on new timestamp
           final newId = newTimestamp.toString();

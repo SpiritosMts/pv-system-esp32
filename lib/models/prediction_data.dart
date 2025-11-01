@@ -26,8 +26,8 @@ class PredictionData {
     
     return PredictionData(
       id: doc.id,
-      predictedPowerW: (data['Predicted_Power_W'] ?? 0).toDouble(),
-      predictedVdcV: (data['Predicted_Vdc_V'] ?? 0).toDouble(),
+      predictedPowerW: (data['predicted_power_w'] ?? 0).toDouble(),
+      predictedVdcV: (data['predicted_v'] ?? 0).toDouble(),
       relativeHumidityZm: (data['relative_humidity_2m'] ?? 0).toDouble(),
       shortwaveRadiation: (data['shortwave_radiation'] ?? 0).toDouble(),
       temperatureZm: (data['temperature_2m'] ?? 0).toDouble(),

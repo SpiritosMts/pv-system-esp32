@@ -1,107 +1,122 @@
 class PVCurrentData {
-  final double current;
   final double humidity;
-  final double light;
+  final double light;  // Irradiance (G_Wm2)
   final double power;
   final double temperature;
   final int timestamp;
   final double voltage;
+  final double energy;  // E_Wh
 
   PVCurrentData({
-    required this.current,
     required this.humidity,
     required this.light,
     required this.power,
     required this.temperature,
     required this.timestamp,
     required this.voltage,
+    required this.energy,
   });
 
   factory PVCurrentData.fromJson(Map<String, dynamic> json) {
+    // Support both old and new field names
     return PVCurrentData(
-      current: (json['current'] ?? 0).toDouble(),
-      humidity: (json['humidity'] ?? 0).toDouble(),
-      light: (json['light'] ?? 0).toDouble(),
-      power: (json['power'] ?? 0).toDouble(),
-      temperature: (json['temperature'] ?? 0).toDouble(),
-      timestamp: json['timestamp'] ?? 0,
-      voltage: (json['voltage'] ?? 0).toDouble(),
+      humidity: (json['Hum_%'] ?? json['humidity'] ?? 0).toDouble(),
+      light: (json['G_Wm2'] ?? json['light'] ?? 0).toDouble(),
+      power: (json['Pmp_kW'] ?? json['power'] ?? 0).toDouble(),
+      temperature: (json['Ta_C'] ?? json['temperature'] ?? 0).toDouble(),
+      timestamp: json['ts'] ?? json['timestamp'] ?? 0,
+      voltage: (json['Vmp_V'] ?? json['voltage'] ?? 0).toDouble(),
+      energy: (json['E_Wh'] ?? 0).toDouble(),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'current': current,
-      'humidity': humidity,
-      'light': light,
-      'power': power,
-      'temperature': temperature,
-      'timestamp': timestamp,
-      'voltage': voltage,
+      'Hum_%': humidity,
+      'G_Wm2': light,
+      'Pmp_kW': power,
+      'Ta_C': temperature,
+      'ts': timestamp,
+      'Vmp_V': voltage,
+      'E_Wh': energy,
     };
   }
 
   DateTime get dateTime {
-    // Unix timestamp is in seconds, convert to milliseconds
-    return DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+    // New format uses milliseconds (ts), old used seconds (timestamp)
+    // Check if timestamp is in milliseconds (> year 2100 in seconds)
+    if (timestamp > 4102444800) {
+      return DateTime.fromMillisecondsSinceEpoch(timestamp);
+    } else {
+      return DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+    }
   }
 }
 
 class PVHistoryData {
   final String id;
-  final double current;
   final double humidity;
-  final double light;
+  final double light;  // Irradiance (G_Wm2)
   final double power;
   final double temperature;
   final int timestamp;
   final double voltage;
+  final double energy;  // E_Wh
 
   PVHistoryData({
     required this.id,
-    required this.current,
     required this.humidity,
     required this.light,
     required this.power,
     required this.temperature,
     required this.timestamp,
     required this.voltage,
+    required this.energy,
   });
 
   factory PVHistoryData.fromJson(String id, Map<String, dynamic> json) {
+    // Support both old and new field names
     return PVHistoryData(
       id: id,
-      current: (json['current'] ?? 0).toDouble(),
-      humidity: (json['humidity'] ?? 0).toDouble(),
-      light: (json['light'] ?? 0).toDouble(),
-      power: (json['power'] ?? 0).toDouble(),
-      temperature: (json['temperature'] ?? 0).toDouble(),
-      timestamp: json['timestamp'] ?? 0,
-      voltage: (json['voltage'] ?? 0).toDouble(),
+      humidity: (json['Hum_%'] ?? json['humidity'] ?? 0).toDouble(),
+      light: (json['G_Wm2'] ?? json['light'] ?? 0).toDouble(),
+      power: (json['Pmp_kW'] ?? json['power'] ?? 0).toDouble(),
+      temperature: (json['Ta_C'] ?? json['temperature'] ?? 0).toDouble(),
+      timestamp: json['ts'] ?? json['timestamp'] ?? 0,
+      voltage: (json['Vmp_V'] ?? json['voltage'] ?? 0).toDouble(),
+      energy: (json['E_Wh'] ?? 0).toDouble(),
     );
   }
 
   Map<String, dynamic> toJson() {
     return {
-      'current': current,
-      'humidity': humidity,
-      'light': light,
-      'power': power,
-      'temperature': temperature,
-      'timestamp': timestamp,
-      'voltage': voltage,
+      'Hum_%': humidity,
+      'G_Wm2': light,
+      'Pmp_kW': power,
+      'Ta_C': temperature,
+      'ts': timestamp,
+      'Vmp_V': voltage,
+      'E_Wh': energy,
     };
   }
 
   DateTime get dateTime {
-    // The ID is now a Unix timestamp (seconds since Jan 1, 1970)
+    // The ID is a Unix timestamp
     final idAsInt = int.tryParse(id);
     if (idAsInt != null && idAsInt > 1000000000) {
-      // ID is a Unix timestamp, use it
-      return DateTime.fromMillisecondsSinceEpoch(idAsInt * 1000);
+      // Check if ID is in milliseconds (> year 2100 in seconds)
+      if (idAsInt > 4102444800) {
+        return DateTime.fromMillisecondsSinceEpoch(idAsInt);
+      } else {
+        return DateTime.fromMillisecondsSinceEpoch(idAsInt * 1000);
+      }
     } else {
       // Fallback: use the timestamp field
-      return DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+      if (timestamp > 4102444800) {
+        return DateTime.fromMillisecondsSinceEpoch(timestamp);
+      } else {
+        return DateTime.fromMillisecondsSinceEpoch(timestamp * 1000);
+      }
     }
   }
 }
@@ -120,8 +135,9 @@ class PVSystemData {
   factory PVSystemData.fromJson(Map<String, dynamic> json) {
     List<PVHistoryData> historyList = [];
     
-    if (json['history'] != null) {
-      final historyRaw = json['history'];
+    // Support both old and new field names: 'history' and 'historique'
+    final historyRaw = json['historique'] ?? json['history'];
+    if (historyRaw != null) {
       Map<String, dynamic> historyMap;
       
       // Handle Firebase's dynamic typing for history
@@ -158,8 +174,9 @@ class PVSystemData {
     }
 
     PVCurrentData? currentValue;
-    if (json['currentValue'] != null) {
-      final currentRaw = json['currentValue'];
+    // Support both old and new field names: 'currentValue' and 'valeur_actuelle'
+    final currentRaw = json['valeur_actuelle'] ?? json['currentValue'];
+    if (currentRaw != null) {
       Map<String, dynamic> currentData;
       
       // Handle Firebase's dynamic typing for currentValue
